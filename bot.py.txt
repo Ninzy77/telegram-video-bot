@@ -1,0 +1,34 @@
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+import yt_dlp
+import os
+
+TOKEN = "8126852872:AAEHb0UvaGT65q1uEvoP0oeQR5JqLpUSOuY"  # Bot Token របស់អ្នក
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("👋 សួស្តី! ផ្ញើតំណវីដេអូ (video link) មកខ្ញុំ ដើម្បីទាញយកវីដេអូ។")
+
+async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    url = update.message.text.strip()
+    await update.message.reply_text("⏳ កំពុងទាញយក...")
+
+    try:
+        ydl_opts = {
+            'outtmpl': 'video.%(ext)s',
+            'format': 'best[ext=mp4]/best',
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+
+        video_file = next(f for f in os.listdir('.') if f.startswith('video.'))
+        await update.message.reply_video(open(video_file, 'rb'))
+        os.remove(video_file)
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ កំហុស៖ {e}")
+
+app = ApplicationBuilder().token(TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download_video))
+
+app.run_polling()
